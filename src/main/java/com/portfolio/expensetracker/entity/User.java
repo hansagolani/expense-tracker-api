@@ -1,10 +1,6 @@
 package com.portfolio.expensetracker.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -16,18 +12,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Column(nullable = false, unique = true)
     private String username;
 
-    @NotBlank
-    @Email
     @Column(nullable = false, unique = true)
     private String email;
 
     /** Stored as a BCrypt hash - never the raw password. */
-    @NotBlank
-    @Size(min = 8)
     @Column(nullable = false)
     private String password;
 

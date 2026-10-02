@@ -1,10 +1,6 @@
 package com.portfolio.expensetracker.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -16,16 +12,12 @@ public class Expense {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Column(nullable = false)
     private String description;
 
-    @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @NotNull
     @Column(nullable = false)
     private LocalDate date;
 

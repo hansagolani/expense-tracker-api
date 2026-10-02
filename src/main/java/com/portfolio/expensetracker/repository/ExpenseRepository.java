@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<Expense> findByOwnerId(Long ownerId);
+    boolean existsByCategoryId(Long categoryId);
 }

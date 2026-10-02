@@ -1,17 +1,18 @@
 package com.portfolio.expensetracker.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "categories", uniqueConstraints = @UniqueConstraint(
+                name = "uk_category_owner_name",
+                columnNames = {"user_id", "name"}
+        ))
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Column(nullable = false)
     private String name;
 
