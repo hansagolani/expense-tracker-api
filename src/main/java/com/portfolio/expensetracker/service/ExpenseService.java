@@ -11,6 +11,12 @@ import com.portfolio.expensetracker.repository.UserRepository;
 import com.portfolio.expensetracker.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.portfolio.expensetracker.event.ExpenseCreatedEvent;
+import java.time.Instant;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
+
+
 
 import java.util.List;
 
@@ -20,12 +26,18 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Autowired
-    public ExpenseService(ExpenseRepository expenseRepository, CategoryRepository categoryRepository, UserRepository userRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository,
+                          CategoryRepository categoryRepository,
+                          UserRepository userRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -67,6 +79,7 @@ public class ExpenseService {
      * Creates an expense owned by the current user.
      * The incoming Expense can reference to a self-owned Category only.
      */
+    @Transactional
     public Expense createExpense(ExpenseCreateRequest request, Long categoryId) {
         User currentUser = getCurrentUser();
 
@@ -86,8 +99,21 @@ public class ExpenseService {
                 category,
                 currentUser
         );
+        Expense savedExpense = expenseRepository.save(expense);
 
-        return expenseRepository.save(expense);
+        //Publish event
+        eventPublisher.publishEvent(
+                new ExpenseCreatedEvent(
+                        savedExpense.getId(),
+                        savedExpense.getDescription(),
+                        savedExpense.getAmount(),
+                        savedExpense.getOwner().getId(),
+                        Instant.now()
+                )
+        );
+
+        return savedExpense;
+
     }
 
     /**
