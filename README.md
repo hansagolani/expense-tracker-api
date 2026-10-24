@@ -2,24 +2,52 @@
 
 A Spring Boot REST API for tracking personal expenses, with JWT-based
 authentication, role-based access control (USER/ADMIN), and an event-driven
-piece using RabbitMQ. Second portfolio project, built to demonstrate breadth
-beyond Project 2 (Library Management API) — specifically security and
-messaging, which that project didn't cover.
+piece using RabbitMQ. Built to demonstrate security and messaging in Spring
+Boot, which my other portfolio project (the Library Management API bug-fix
+repo) doesn't cover.
 
 ## Status
-In progress. The core implementation is complete and tested.
-Remaining work is final documentation/design-decision writeups.
-
-Auth, CRUD (categories/expenses), and RabbitMQ eventing are all done and tested 
-- 20+ tests across two suites, all passing. 
-- This project is a local portfolio demo, not a live deployment, there's no hosted instance.
+v1.0: feature-complete for local use - auth, category/expense CRUD and
+RabbitMQ eventing, with 22 tests across two suites, all passing. Runs
+locally only; there is no hosted instance.
 
 ## Stack
 - Java 17, Spring Boot 3.3 (Web, Data JPA, Validation, Security, AMQP)
 - JWT via JJWT
-- RabbitMQ
+- RabbitMQ (run locally with Docker Compose)
 - H2 (local only - this project doesn't run anywhere else)
 - Maven
+
+## Running locally
+Requires Java 17, Maven and Docker (for RabbitMQ).
+
+**1. Start RabbitMQ**
+```
+docker compose up -d
+```
+The connection settings in `application.properties` (`localhost:15672`,
+user `guest`, password `guest`) match `docker-compose.yml`.
+
+**2. Set the environment variables**
+
+The app won't start without them, and the tests need them too:
+- `JWT_SECRET` - any long random string (e.g. `openssl rand -base64 32`)
+- `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` - the seeded admin
+  account's credentials, for local use
+
+Copy `.env.example` to `.env` and fill in the values. `.env` is git-ignored;
+the app reads it from the project root automatically.
+
+**3. Run**
+```
+mvn spring-boot:run     # start the API on http://localhost:8080
+mvn test                # run the test suites
+```
+
+An earlier commit had the JWT secret and admin credentials directly in
+`application.properties`. They've since been moved to environment
+variables and the secret rotated - git history still shows the old
+values, but they're no longer the ones actually in use.
 
 ## Domain
 - `User` - username, email, hashed password, roles (USER/ADMIN)
@@ -38,10 +66,10 @@ case to explain.
 - Stateless - no server-side sessions
 - No endpoint to grant ADMIN - a `CommandLineRunner` (`DataInitializer`)
   seeds one admin account on startup instead. Username/email/password are
-  read from `application.properties` (`app.admin.*`) rather than hardcoded -
-  even though this project isn't deployed anywhere, externalizing config
-  instead of hardcoding it is the habit worth keeping, same reasoning as
-  the JWT secret below.
+  read from environment variables (`app.admin.*` in `application.properties`)
+  rather than hardcoded - even though this project isn't deployed anywhere,
+  externalizing config instead of hardcoding it is the habit worth keeping,
+  same reasoning as the JWT secret (see Running locally).
 - A custom `AuthenticationEntryPoint` returns a plain 401 for unauthenticated
   requests instead of Spring Security's default redirect-to-login behavior,
   which doesn't make sense for a stateless API with no login page.
@@ -136,6 +164,6 @@ rather than repeated here.
   either failed outright or silently got discarded at commit time
   (`UnexpectedRollbackException`). Fixed by removing the catch entirely:
   on a genuine constraint violation, the whole transaction (including the
-  `processed_events` insert) rolls back cleanly, and RabbitMQ's redelivery
-- already configured with bounded retries - reprocesses the message from
+  `processed_events` insert) rolls back cleanly, and RabbitMQ's redelivery,
+  already configured with bounded retries, reprocesses the message from
   a consistent state instead of retrying inside broken transaction state.
