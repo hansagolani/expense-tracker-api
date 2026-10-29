@@ -7,36 +7,37 @@ Boot, which my other portfolio project (the Library Management API bug-fix
 repo) doesn't cover.
 
 ## Status
-v1.0: feature-complete for local use - auth, category/expense CRUD and
-RabbitMQ eventing, with 22 tests across two suites, all passing. Runs
-locally only; there is no hosted instance.
+v1.1: persistent storage on PostgreSQL. 
+Auth, CRUD and RabbitMQ eventing as in v1.0, with 22 tests across two suites, all passing.
+Runs locally only; no hosted instance.
 
 ## Stack
 - Java 17, Spring Boot 3.3 (Web, Data JPA, Validation, Security, AMQP)
 - JWT via JJWT
 - RabbitMQ (run locally with Docker Compose)
-- H2 (local only - this project doesn't run anywhere else)
+- PostgreSQL 16 (via Docker Compose); H2 for tests only
 - Maven
 
 ## Running locally
 Requires Java 17, Maven and Docker (for RabbitMQ).
 
-**1. Start RabbitMQ**
-```
-docker compose up -d
-```
-The connection settings in `application.properties` (`localhost:15672`,
-user `guest`, password `guest`) match `docker-compose.yml`.
-
-**2. Set the environment variables**
+**1. Set the environment variables**
 
 The app won't start without them, and the tests need them too:
 - `JWT_SECRET` - any long random string (e.g. `openssl rand -base64 32`)
 - `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` - the seeded admin
   account's credentials, for local use
+- `DB_USERNAME` and `DB_PASSWORD` - PostgreSQL DB credentials
 
 Copy `.env.example` to `.env` and fill in the values. `.env` is git-ignored;
 the app reads it from the project root automatically.
+
+**2. Start RabbitMQ and PostgresSQL**
+```
+docker compose up -d
+```
+The connection settings in `application.properties` (`localhost:15672`,
+user `guest`, password `guest`) match `docker-compose.yml`.
 
 **3. Run**
 ```
@@ -44,6 +45,8 @@ mvn spring-boot:run     # start the API on http://localhost:8080
 mvn test                # run the test suites
 ```
 
+Tests run on H2, not Postgres; 
+a Postgres-backed test setup (Testcontainers) is a possible next step.
 An earlier commit had the JWT secret and admin credentials directly in
 `application.properties`. They've since been moved to environment
 variables and the secret rotated - git history still shows the old
@@ -142,6 +145,7 @@ for async delivery. The actual producer→broker→consumer wiring was verified
 manually, via Postman and RabbitMQ's management UI.
 
 ## Testing
+Tests run on H2, not PostgreSQL. 
 - `ExpenseTrackerIntegrationTest` - auth, validation, ownership boundaries,
   admin behavior, category/expense CRUD (18 tests)
 - `ExpenseMessagingIntegrationTest` - event handler idempotency, atomic
